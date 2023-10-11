@@ -13,8 +13,6 @@ int main (int argc, char *argv[])
   int microCells_N = 9;
   int UE_N = 50;
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
-  // Ptr<EpcHelper> epcHelper = CreateObject<EpcHelper>();
-  // lteHelper->SetEpcHelper (epcHelper);
 
   // macro cells
   NodeContainer macroNodes;
@@ -77,11 +75,6 @@ int main (int argc, char *argv[])
   
   enbDevices = lteHelper->InstallEnbDevice(macroNodes);
   ueDevices = lteHelper->InstallUeDevice(ueNodes);
-
-  // Install EPC
-  // enbDevices = lteHelper->InstallEnbDevice(macroNodes);
-  // epcHelper->AddUe(ueNodes);
-  // epcHelper->AddEnb(enbDevices);
 
   //Attach the UEs to an eNB. This will configure each UE according to the eNB configuration, and create an RRC connection between them:
   lteHelper->Attach (ueDevices, enbDevices.Get (0));
