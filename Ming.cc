@@ -5,17 +5,20 @@
 #include "ns3/netanim-module.h"
 #include "ns3/flow-monitor-module.h"
 using namespace ns3;
+
 int main (int argc, char *argv[])
 {
-
   CommandLine cmd;
+  int macroCells_N = 9;
+  int microCells_N = 9;
+  int UE_N = 50;
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
   // Ptr<EpcHelper> epcHelper = CreateObject<EpcHelper>();
   // lteHelper->SetEpcHelper (epcHelper);
 
-  // 9 macro cells
+  // macro cells
   NodeContainer macroNodes;
-  macroNodes.Create(9);
+  macroNodes.Create(macroCells_N);
 
   Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
   positionAlloc->Add (Vector(5000, 5000, 0));
@@ -33,9 +36,10 @@ int main (int argc, char *argv[])
   macroMobility.SetPositionAllocator(positionAlloc);
   macroMobility.Install (macroNodes);
 
-  // 30 micro cells
+  // micro cells
   NodeContainer microNodes;
-  microNodes.Create(30);
+  microNodes.Create(microCells_N);
+
   Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
   x->SetAttribute ("Min", DoubleValue (-5000));
   x->SetAttribute ("Max", DoubleValue (5000));
@@ -51,9 +55,10 @@ int main (int argc, char *argv[])
   microMobility.SetPositionAllocator(microPositionAlloc);
   microMobility.Install (microNodes);
 
-  // 50 UEs
+  // UEs
   NodeContainer ueNodes;
-  ueNodes.Create (50);
+  ueNodes.Create (UE_N);
+
   MobilityHelper ueMobility;
   ueMobility.SetPositionAllocator ("ns3::RandomDiscPositionAllocator",
   "X", DoubleValue (0.0),
@@ -97,9 +102,24 @@ int main (int argc, char *argv[])
   
   // Enable animation
   AnimationInterface anim("lte-macro-micro.xml");
+  anim.EnablePacketMetadata(true);
+
+  // Set color for each node
+  for (int i = 0; i < macroCells_N; ++i) {
+    anim.UpdateNodeColor(macroNodes.Get(i), 0, 0, 0);  // RGB values
+    anim.UpdateNodeSize(macroNodes.Get(i), 180, 180);  // Set node size
+  }
+  for (int i = 0; i < microCells_N; ++i) {
+    anim.UpdateNodeColor(microNodes.Get(i), 255, 0, 0);  // RGB values
+    anim.UpdateNodeSize(microNodes.Get(i), 130,130);  // Set node size
+  }
+  for (int i = 0; i < UE_N; ++i) {
+    anim.UpdateNodeColor(ueNodes.Get(i), 0, 255, 0);  // RGB values
+    anim.UpdateNodeSize(ueNodes.Get(i), 80,80);  // Set node size
+  }
+
   anim.SetMobilityPollInterval(Seconds(1.00));
   anim.SetMaxPktsPerTraceFile (100000000000);
-
   // anim.EnablePacketMetadata(true);
   Simulator::Run ();
   Simulator::Destroy ();
