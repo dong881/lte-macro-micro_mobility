@@ -4,6 +4,8 @@
 #include <ns3/lte-module.h>
 #include "ns3/netanim-module.h"
 #include "ns3/flow-monitor-module.h"
+#include "ns3/internet-module.h" // Added for IP address assignment
+
 using namespace ns3;
 
 int main (int argc, char *argv[])
@@ -76,11 +78,22 @@ int main (int argc, char *argv[])
   enbDevices = lteHelper->InstallEnbDevice(macroNodes);
   ueDevices = lteHelper->InstallUeDevice(ueNodes);
 
+  /*Handover*/
+  
+  // Assign IP addresses to UEs
+  InternetStackHelper internet;
+  internet.Install (ueNodes);
+
+  Ipv4AddressHelper ipv4;
+  ipv4.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer ueIpIface = ipv4.Assign (ueDevices);
+
+  /*Handover END*/
+
   //Attach the UEs to an eNB. This will configure each UE according to the eNB configuration, and create an RRC connection between them:
   lteHelper->Attach (ueDevices, enbDevices.Get (0));
-  
-  //Activate a data radio bearer between each UE and the eNB it is attached to:
 
+  //Activate a data radio bearer between each UE and the eNB it is attached to:
   enum EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer (q);
   lteHelper->ActivateDataRadioBearer (ueDevices, bearer);
@@ -109,6 +122,13 @@ int main (int argc, char *argv[])
   for (int i = 0; i < UE_N; ++i) {
     anim.UpdateNodeColor(ueNodes.Get(i), 0, 255, 0);  // RGB values
     anim.UpdateNodeSize(ueNodes.Get(i), 80,80);  // Set node size
+  }
+
+  // Display IP addresses
+  for (uint32_t i = 0; i < ueNodes.GetN (); ++i) {
+    Ptr<Ipv4> ipv4 = ueNodes.Get (i)->GetObject<Ipv4> ();
+    Ipv4Address addr = ipv4->GetAddress (1, 0).GetLocal ();
+    std::cout << "UE " << i + 1 << " IP address: " << addr << std::endl;
   }
 
   anim.SetMobilityPollInterval(Seconds(0.10));
