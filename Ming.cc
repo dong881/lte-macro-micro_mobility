@@ -67,7 +67,7 @@ int main (int argc, char *argv[])
   ueMobility.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
   "Mode", StringValue ("Time"),
   "Time", StringValue ("2s"),
-  "Speed", StringValue ("ns3::ConstantRandomVariable[Constant=20]"),
+  "Speed", StringValue ("ns3::ConstantRandomVariable[Constant=1000]"),
   "Bounds", RectangleValue (Rectangle (-5000, 5000, -5000, 5000)));
   ueMobility.Install (ueNodes);
 
@@ -118,7 +118,7 @@ int main (int argc, char *argv[])
     anim.UpdateNodeSize(ueNodes.Get(i), 80,80);  // Set node size
   }
 
-  anim.SetMobilityPollInterval(Seconds(1.00));
+  anim.SetMobilityPollInterval(Seconds(0.10));
   anim.SetMaxPktsPerTraceFile (100000000000);
   // anim.EnablePacketMetadata(true);
   Simulator::Run ();
