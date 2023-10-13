@@ -6,6 +6,8 @@
 #include "ns3/flow-monitor-module.h"
 #include "ns3/internet-module.h" // Added for IP address assignment
 #include "ns3/epc-helper.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/internet-stack-helper.h"
 
 using namespace ns3;
 
@@ -18,39 +20,41 @@ int main (int argc, char *argv[])
   int UE_N = 50;
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
 
-  // /*19.2.14. Evolved Packet Core (EPC)*/
-  // Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
-  // lteHelper->SetEpcHelper(epcHelper);
+  /*19.2.14. Evolved Packet Core (EPC)*/
+  Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper> ();
+  lteHelper->SetEpcHelper (epcHelper);
+  lteHelper->SetSchedulerType ("ns3::RrFfMacScheduler");
+  lteHelper->SetHandoverAlgorithmType ("ns3::NoOpHandoverAlgorithm"); // disable automatic handover
 
-  // Ptr<Node> pgw = epcHelper->GetPgwNode();
+  Ptr<Node> pgw = epcHelper->GetPgwNode ();
 
-  // // Create a single RemoteHost
-  // NodeContainer remoteHostContainer;
-  // remoteHostContainer.Create(1);
-  // Ptr<Node> remoteHost = remoteHostContainer.Get(0);
-  // InternetStackHelper internet;
-  // internet.Install(remoteHostContainer);
+  // Create a single RemoteHost
+  NodeContainer remoteHostContainer;
+  remoteHostContainer.Create (1);
+  Ptr<Node> remoteHost = remoteHostContainer.Get (0);
+  InternetStackHelper internet;
+  internet.Install (remoteHostContainer);
 
-  // // Create the internet
-  // PointToPointHelper p2ph;
-  // p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
-  // p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
-  // p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
-  // NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
-  // Ipv4AddressHelper ipv4h;
-  // ipv4h.SetBase("1.0.0.0", "255.0.0.0");
-  // Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
-  // // interface 0 is localhost, 1 is the p2p device
-  // Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
+  // Create the Internet
+  PointToPointHelper p2ph;
+  p2ph.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("100Gb/s")));
+  p2ph.SetDeviceAttribute ("Mtu", UintegerValue (1500));
+  p2ph.SetChannelAttribute ("Delay", TimeValue (Seconds (0.010)));
+  NetDeviceContainer internetDevices = p2ph.Install (pgw, remoteHost);
+  Ipv4AddressHelper ipv4h;
+  ipv4h.SetBase ("1.0.0.0", "255.0.0.0");
+  Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign (internetDevices);
+  Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress (1);
 
 
-  // Ipv4StaticRoutingHelper ipv4RoutingHelper;
-  // Ptr<Ipv4StaticRouting> remoteHostStaticRouting;
-  // remoteHostStaticRouting = ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
-  // remoteHostStaticRouting->AddNetworkRouteTo(epcHelper->GetEpcIpv4NetworkAddress(),
-  //                                           Ipv4Mask("255.255.0.0"), 1);
+  // Routing of the Internet Host (towards the LTE network)
+  Ipv4StaticRoutingHelper ipv4RoutingHelper;
+  Ptr<Ipv4StaticRouting> remoteHostStaticRouting = ipv4RoutingHelper.GetStaticRouting (remoteHost->GetObject<Ipv4> ());
+  // interface 0 is localhost, 1 is the p2p device
+  remoteHostStaticRouting->AddNetworkRouteTo (Ipv4Address ("7.0.0.0"), Ipv4Mask ("255.0.0.0"), 1);
+
                                       
-  // /*END EPC*/
+  /*END EPC*/
 
   lteHelper->SetSchedulerType("ns3::FdMtFfMacScheduler");    // FD-MT scheduler 
 
@@ -122,7 +126,7 @@ int main (int argc, char *argv[])
   /*Handover*/
   
   // Assign IP addresses to UEs
-  InternetStackHelper internet;
+  // InternetStackHelper internet;
   internet.Install (ueNodes);
 
   Ipv4AddressHelper ipv4;
@@ -139,6 +143,21 @@ int main (int argc, char *argv[])
   EpsBearer bearer (q);
   lteHelper->AttachToClosestEnb (ueDevices, enbDevices);
   
+
+  Ptr<MobilityModel> pgw_loc = CreateObject<ConstantPositionMobilityModel>();
+  pgw_loc->SetPosition(Vector(20.0, 30.0, 0.0));
+  pgw->AggregateObject(pgw_loc);	
+  
+  Ptr<Node> sgw = epcHelper->GetSgwNode ();
+  Ptr<MobilityModel> sgw_loc = CreateObject<ConstantPositionMobilityModel>();
+  sgw_loc->SetPosition(Vector(50.0, 50.0, 0.0));
+  sgw->AggregateObject(sgw_loc);
+  
+  
+  Ptr<MobilityModel> remoteHost_loc = CreateObject<ConstantPositionMobilityModel>();
+  remoteHost_loc->SetPosition(Vector(45.0, 20.0, 0.0));
+  remoteHost->AggregateObject(remoteHost_loc);
+
   //Set the stop time
   Simulator::Stop (Seconds (20));
 
@@ -151,6 +170,14 @@ int main (int argc, char *argv[])
   // Enable animation
   AnimationInterface anim("lte-macro-micro.xml");
   anim.EnablePacketMetadata(true);
+
+  anim.UpdateNodeDescription(pgw,"pgw");
+  anim.UpdateNodeColor(pgw,255,0,0);
+  anim.UpdateNodeDescription(epcHelper->GetSgwNode(),"sgw");
+  anim.UpdateNodeColor(epcHelper->GetSgwNode(),255,0,0);
+  anim.UpdateNodeDescription(remoteHost,"remoteHost");
+  anim.UpdateNodeColor(remoteHost,255,0,0);
+
 
   // Set color for each node
   for (int i = 0; i < macroCells_N; ++i) {
