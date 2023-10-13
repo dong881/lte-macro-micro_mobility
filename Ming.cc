@@ -5,6 +5,7 @@
 #include "ns3/netanim-module.h"
 #include "ns3/flow-monitor-module.h"
 #include "ns3/internet-module.h" // Added for IP address assignment
+#include "ns3/epc-helper.h"
 
 using namespace ns3;
 
@@ -16,6 +17,40 @@ int main (int argc, char *argv[])
   int microCells_N = 9;
   int UE_N = 50;
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
+
+  // /*19.2.14. Evolved Packet Core (EPC)*/
+  // Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
+  // lteHelper->SetEpcHelper(epcHelper);
+
+  // Ptr<Node> pgw = epcHelper->GetPgwNode();
+
+  // // Create a single RemoteHost
+  // NodeContainer remoteHostContainer;
+  // remoteHostContainer.Create(1);
+  // Ptr<Node> remoteHost = remoteHostContainer.Get(0);
+  // InternetStackHelper internet;
+  // internet.Install(remoteHostContainer);
+
+  // // Create the internet
+  // PointToPointHelper p2ph;
+  // p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
+  // p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
+  // p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
+  // NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
+  // Ipv4AddressHelper ipv4h;
+  // ipv4h.SetBase("1.0.0.0", "255.0.0.0");
+  // Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
+  // // interface 0 is localhost, 1 is the p2p device
+  // Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
+
+
+  // Ipv4StaticRoutingHelper ipv4RoutingHelper;
+  // Ptr<Ipv4StaticRouting> remoteHostStaticRouting;
+  // remoteHostStaticRouting = ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
+  // remoteHostStaticRouting->AddNetworkRouteTo(epcHelper->GetEpcIpv4NetworkAddress(),
+  //                                           Ipv4Mask("255.255.0.0"), 1);
+                                      
+  // /*END EPC*/
 
   lteHelper->SetSchedulerType("ns3::FdMtFfMacScheduler");    // FD-MT scheduler 
 
@@ -77,8 +112,11 @@ int main (int argc, char *argv[])
   // Install LTE protocol stack
   NetDeviceContainer enbDevices;
   NetDeviceContainer ueDevices;
-  
-  enbDevices = lteHelper->InstallEnbDevice(macroNodes);
+  NodeContainer allEnbNodes;
+  allEnbNodes.Add(macroNodes);
+  allEnbNodes.Add(microNodes);
+
+  enbDevices = lteHelper->InstallEnbDevice(allEnbNodes);
   ueDevices = lteHelper->InstallUeDevice(ueNodes);
 
   /*Handover*/
