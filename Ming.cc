@@ -8,6 +8,7 @@
 
 using namespace ns3;
 
+
 int main (int argc, char *argv[])
 {
   CommandLine cmd;
@@ -15,6 +16,8 @@ int main (int argc, char *argv[])
   int microCells_N = 9;
   int UE_N = 50;
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
+
+  lteHelper->SetSchedulerType("ns3::FdMtFfMacScheduler");    // FD-MT scheduler 
 
   // macro cells
   NodeContainer macroNodes;
@@ -101,6 +104,7 @@ int main (int argc, char *argv[])
   //Set the stop time
   Simulator::Stop (Seconds (20));
 
+  /*Simulation Output*/
   ///This is needed otherwise the simulation will last forever, because (among others) the start-of-subframe event is scheduled repeatedly, and the ns-3 simulator scheduler will hence never run out of events.
   lteHelper->EnablePhyTraces ();
   lteHelper->EnableMacTraces ();
