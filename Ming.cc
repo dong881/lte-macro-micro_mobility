@@ -6,10 +6,6 @@
 #include "ns3/flow-monitor-module.h"
 #include "ns3/internet-module.h" // Added for IP address assignment
 #include "ns3/epc-helper.h"
-#include "ns3/point-to-point-helper.h"
-#include "ns3/internet-stack-helper.h"
-#include "ns3/ipv4.h"
-#include "ns3/ipv4-address.h"
 
 using namespace ns3;
 
@@ -22,38 +18,39 @@ int main (int argc, char *argv[])
   int UE_N = 50;
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
 
-  /*19.2.14. Evolved Packet Core (EPC)*/
-  Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
-  lteHelper->SetEpcHelper(epcHelper);
+  // /*19.2.14. Evolved Packet Core (EPC)*/
+  // Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
+  // lteHelper->SetEpcHelper(epcHelper);
 
-  Ptr<Node> pgw = epcHelper->GetPgwNode();
+  // Ptr<Node> pgw = epcHelper->GetPgwNode();
 
-  // Create a single RemoteHost
-  NodeContainer remoteHostContainer;
-  remoteHostContainer.Create(1);
-  Ptr<Node> remoteHost = remoteHostContainer.Get(0);
-  InternetStackHelper internet;
-  internet.Install(remoteHostContainer);
+  // // Create a single RemoteHost
+  // NodeContainer remoteHostContainer;
+  // remoteHostContainer.Create(1);
+  // Ptr<Node> remoteHost = remoteHostContainer.Get(0);
+  // InternetStackHelper internet;
+  // internet.Install(remoteHostContainer);
 
-  // Create the Internet
-  PointToPointHelper p2ph;
-  p2ph.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("100Gb/s")));
-  p2ph.SetDeviceAttribute ("Mtu", UintegerValue (1500));
-  p2ph.SetChannelAttribute ("Delay", TimeValue (Seconds (0.010)));
-  NetDeviceContainer internetDevices = p2ph.Install (pgw, remoteHost);
-  Ipv4AddressHelper ipv4h;
-  ipv4h.SetBase ("1.0.0.0", "255.0.0.0");
-  Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign (internetDevices);
-  // Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress (1);
+  // // Create the internet
+  // PointToPointHelper p2ph;
+  // p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
+  // p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
+  // p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
+  // NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
+  // Ipv4AddressHelper ipv4h;
+  // ipv4h.SetBase("1.0.0.0", "255.0.0.0");
+  // Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
+  // // interface 0 is localhost, 1 is the p2p device
+  // Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
 
-  // Routing of the Internet Host (towards the LTE network)
-  Ipv4StaticRoutingHelper ipv4RoutingHelper;
-  Ptr<Ipv4StaticRouting> remoteHostStaticRouting = ipv4RoutingHelper.GetStaticRouting (remoteHost->GetObject<Ipv4> ());
-  // interface 0 is localhost, 1 is the p2p device
-  remoteHostStaticRouting->AddNetworkRouteTo (Ipv4Address ("7.0.0.0"), Ipv4Mask ("255.0.0.0"), 1);
 
+  // Ipv4StaticRoutingHelper ipv4RoutingHelper;
+  // Ptr<Ipv4StaticRouting> remoteHostStaticRouting;
+  // remoteHostStaticRouting = ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
+  // remoteHostStaticRouting->AddNetworkRouteTo(epcHelper->GetEpcIpv4NetworkAddress(),
+  //                                           Ipv4Mask("255.255.0.0"), 1);
                                       
-  /*END EPC*/
+  // /*END EPC*/
 
   lteHelper->SetSchedulerType("ns3::FdMtFfMacScheduler");    // FD-MT scheduler 
 
@@ -122,29 +119,26 @@ int main (int argc, char *argv[])
   enbDevices = lteHelper->InstallEnbDevice(allEnbNodes);
   ueDevices = lteHelper->InstallUeDevice(ueNodes);
 
-  // assign IP address to UEs
-  // for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
-  // {
-  //   Ptr<Node> ue = ueNodes.Get(u);
-  //   // set the default gateway for the UE
-  //   Ptr<Ipv4StaticRouting> ueStaticRouting;
-  //   ueStaticRouting = ipv4RoutingHelper.GetStaticRouting(ue->GetObject<Ipv4>());
-  //   ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(), 1);
-  // }
-  // we install the IP stack on the UEs
-  internet.Install(ueNodes);
-  // internet.Install(allEnbNodes);
-
-  // //Attach the UEs to an eNB. This will configure each UE according to the eNB configuration, and create an RRC connection between them:
-  // lteHelper->Attach (ueDevices, enbDevices.Get (0));
-  Ipv4InterfaceContainer ueIpIfaces = epcHelper->AssignUeIpv4Address (NetDeviceContainer (ueDevices));
+  /*Handover*/
   
+  // Assign IP addresses to UEs
+  InternetStackHelper internet;
+  internet.Install (ueNodes);
+
+  Ipv4AddressHelper ipv4;
+  ipv4.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer ueIpIface = ipv4.Assign (ueDevices);
+
+  /*Handover END*/
+
+  //Attach the UEs to an eNB. This will configure each UE according to the eNB configuration, and create an RRC connection between them:
+  lteHelper->Attach (ueDevices, enbDevices.Get (0));
+
   //Activate a data radio bearer between each UE and the eNB it is attached to:
   enum EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer (q);
-  lteHelper->ActivateDataRadioBearer (ueDevices, bearer);
-  // lteHelper->AttachToClosestEnb (ueDevices, enbDevices);
-
+  lteHelper->AttachToClosestEnb (ueDevices, enbDevices);
+  
   //Set the stop time
   Simulator::Stop (Seconds (20));
 
