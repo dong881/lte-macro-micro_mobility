@@ -145,17 +145,17 @@ int main (int argc, char *argv[])
   
 
   Ptr<MobilityModel> pgw_loc = CreateObject<ConstantPositionMobilityModel>();
-  pgw_loc->SetPosition(Vector(20.0, 30.0, 0.0));
+  pgw_loc->SetPosition(Vector(7000.0, 1000.0, 0.0));
   pgw->AggregateObject(pgw_loc);	
   
   Ptr<Node> sgw = epcHelper->GetSgwNode ();
   Ptr<MobilityModel> sgw_loc = CreateObject<ConstantPositionMobilityModel>();
-  sgw_loc->SetPosition(Vector(50.0, 50.0, 0.0));
+  sgw_loc->SetPosition(Vector(7000.0, 0.0, 0.0));
   sgw->AggregateObject(sgw_loc);
   
   
   Ptr<MobilityModel> remoteHost_loc = CreateObject<ConstantPositionMobilityModel>();
-  remoteHost_loc->SetPosition(Vector(45.0, 20.0, 0.0));
+  remoteHost_loc->SetPosition(Vector(7000.0, -1000.0, 0.0));
   remoteHost->AggregateObject(remoteHost_loc);
 
   //Set the stop time
